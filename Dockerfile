@@ -5,9 +5,13 @@
 # (uid 10001). No credentials baked in: UUID/WS_PATH/PRIVATE_KEY are passed
 # as environment variables by each platform app, so one repo serves all
 # nodes and the repo itself contains no secrets.
+# NOTE: the official sing-box linux-amd64 release binary is dynamically
+# linked against glibc, so both stages use Debian (glibc). It cannot run
+# on Alpine/musl ("not found" when executed).
 
-FROM alpine:3.20 AS downloader
-RUN apk add --no-cache curl ca-certificates tar
+FROM debian:bookworm-slim AS downloader
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates tar \
+  && rm -rf /var/lib/apt/lists/*
 ARG SING_BOX_VERSION=latest
 RUN set -eux; \
   if [ "$SING_BOX_VERSION" = "latest" ]; then \
@@ -22,9 +26,10 @@ RUN set -eux; \
   chmod +x /usr/local/bin/sing-box; \
   /usr/local/bin/sing-box version
 
-FROM alpine:3.20
-RUN apk add --no-cache ca-certificates tzdata \
-  && adduser -D -u 10001 singbox
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata \
+  && rm -rf /var/lib/apt/lists/* \
+  && useradd -u 10001 -m singbox
 COPY --from=downloader /usr/local/bin/sing-box /usr/local/bin/sing-box
 WORKDIR /app
 COPY config-template.json /app/config-template.json
