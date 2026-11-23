@@ -22,3 +22,5 @@ jobs:
           context: .
           push: true
           tags: ghcr.io/anyin2020/sing-box-deploy:latest
+          provenance: false
+          sbom: false
